@@ -1,7 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>html,body{height:100%}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Junction Control</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
@@ -27,16 +26,14 @@ html,body{height:100%}
 body{
   background:var(--ink);color:var(--text);font-family:var(--font-b);font-size:15px;
   overflow:hidden;margin:0;
-  padding-left:max(16px,env(safe-area-inset-left,0px));
-  padding-right:max(16px,env(safe-area-inset-right,0px));
-  padding-block:10px;box-sizing:border-box;
+  padding:0;box-sizing:border-box;
   -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;
 }
-#app{height:100%;display:grid;place-items:center}
-#stage{position:relative;border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 0 1px var(--panel-line);touch-action:none}
+#app{height:100%;position:relative}
+#stage{position:absolute;inset:0;overflow:hidden;touch-action:none;background:#0d1d24}
 #cv{display:block;width:100%;height:100%;cursor:pointer}
 
-.hud{position:absolute;inset:8px 8px auto 8px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none}
+.hud{position:absolute;top:max(8px,env(safe-area-inset-top,0px));left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none}
 .goal{background:var(--panel);border:1px solid var(--panel-line);border-radius:10px;padding:8px 10px;min-width:0;flex:1 1 auto;max-width:52%;backdrop-filter:blur(4px)}
 .goal-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:var(--font-d)}
 .goal-label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -192,7 +189,8 @@ kbd{font-family:var(--font-d);background:rgba(255,255,255,.08);border-radius:4px
 const W = 600, H = 900, BW = 46, LN = 22;
 const MAX_PENDING = 6, AMB_LIMIT = 7, AMB_PENALTY = 3;
 const WRECK_SMALL = 5, WRECK_BIG = 8, AMBER = 2;
-const RR = 80, PHI = 30 * Math.PI/180;          // roundabout lane radius, merge/exit offset
+const RR = 80, PHI = 30 * Math.PI/180;
+const BGM = 170;                                // background drawn this far beyond the map edges          // roundabout lane radius, merge/exit offset
 
 const $ = id => document.getElementById(id);
 const cv = $('cv'), ctx = cv.getContext('2d');
@@ -395,6 +393,115 @@ const MAPS = [
       { a:['J','E'], edge:[640,720,1,0.1] },
       { a:['J','S'], edge:[320,940,0.05,1] },
       { a:['J','W'], edge:[-40,660,-1,-0.1], oneway:'ba' }
+    ] },
+  // ===== maps traced from real places =====
+  // Osaka, Fukushima: a diagonal avenue crossing Hokko-dori and a smaller street, one-way side street
+  { key:'osaka', name:'Osaka', target:32, base:5.4, city:true,
+    split:[['J1','S']], bans:[['J2','W','L']],
+    nodes:[
+      { id:'J1', type:'junction', x:455, y:285, rot:0.535, arms:['N','E','S','W'] },
+      { id:'J2', type:'junction', x:260, y:610, rot:0.535, arms:['N','E','S','W'] },
+      { id:'J3', type:'junction', x:480, y:650, rot:0,     arms:['E','S','W'] }
+    ],
+    roads:[
+      { a:['J1','S'], b:['J2','N'] },
+      { a:['J2','E'], b:['J3','W'] },
+      { a:['J1','N'], edge:[570,-40,0.51,-0.86] },
+      { a:['J1','E'], edge:[640,300,1,0.05] },
+      { a:['J1','W'], edge:[-40,250,-1,-0.05] },
+      { a:['J2','S'], edge:[150,940,-0.45,0.9] },
+      { a:['J2','W'], edge:[-40,620,-1,0] },
+      { a:['J3','E'], edge:[640,630,1,-0.05] },
+      { a:['J3','S'], edge:[500,940,0.05,1], oneway:'ab' }
+    ] },
+  // Joensuu: two small roundabouts on the town roads, a motorway passing over them on a bridge
+  { key:'joensuu', name:'Interchange', target:34, base:5.2,
+    split:[['R1','n'],['R2','s']],
+    nodes:[
+      { id:'R1', type:'round', x:215, y:365, arms:[{key:'w',ang:180},{key:'n',ang:-95},{key:'e',ang:-5},{key:'se',ang:55}] },
+      { id:'R2', type:'round', x:440, y:680, arms:[{key:'nw',ang:-125},{key:'e',ang:5},{key:'s',ang:95},{key:'w',ang:175}] }
+    ],
+    roads:[
+      { a:['R1','se'], b:['R2','nw'] },
+      { a:['R1','w'], edge:[-40,350,-1,0] },
+      { a:['R1','n'], edge:[200,-40,-0.05,-1] },
+      { a:['R1','e'], edge:[640,320,1,-0.1] },
+      { a:['R2','e'], edge:[640,700,1,0.05] },
+      { a:['R2','s'], edge:[450,940,0.02,1] },
+      { a:['R2','w'], edge:[-40,770,-1,0.15] },
+      { edges:[[-40,820,-1,0.75],[640,170,1,-0.85]], level:1, median:true, fast:true }
+    ] },
+  // Futian, Shenzhen: a tilted city grid, a wide boulevard with a median and a one-way street
+  { key:'futian', name:'Futian', target:36, base:5.6, city:true,
+    split:[['F1','N']], bans:[['F3','S','L']],
+    nodes:[
+      { id:'F1', type:'junction', x:190, y:710, rot:0.61, arms:['N','E','S','W'] },
+      { id:'F2', type:'junction', x:310, y:540, rot:0.61, arms:['N','E','S','W'] },
+      { id:'F3', type:'junction', x:430, y:370, rot:0.61, arms:['N','E','S','W'] }
+    ],
+    roads:[
+      { a:['F1','N'], b:['F2','S'] }, { a:['F2','N'], b:['F3','S'] },
+      { a:['F1','S'], edge:'auto' }, { a:['F3','N'], edge:'auto' },
+      { a:['F1','E'], edge:'auto' }, { a:['F1','W'], edge:'auto' },
+      { a:['F2','E'], edge:'auto', oneway:'ab' }, { a:['F2','W'], edge:'auto', oneway:'ba' },
+      { a:['F3','E'], edge:'auto', median:true }, { a:['F3','W'], edge:'auto', median:true }
+    ] },
+  // Chita: a residential grid along a main road, one-way side street
+  { key:'chita', name:'Chita', target:34, base:5.6, city:true,
+    split:[['K3','W']],
+    nodes:[
+      { id:'K1', type:'junction', x:120, y:430, rot:0.6, arms:['N','E','S','W'] },
+      { id:'K2', type:'junction', x:300, y:553, rot:0.6, arms:['N','E','W'] },
+      { id:'K3', type:'junction', x:480, y:676, rot:0.6, arms:['N','E','S','W'] }
+    ],
+    roads:[
+      { a:['K1','E'], b:['K2','W'] }, { a:['K2','E'], b:['K3','W'] },
+      { a:['K1','W'], edge:'auto' }, { a:['K3','E'], edge:'auto' },
+      { a:['K1','N'], edge:'auto' }, { a:['K2','N'], edge:'auto', oneway:'ba' }, { a:['K3','N'], edge:'auto' },
+      { a:['K1','S'], edge:'auto' }, { a:['K3','S'], edge:'auto' }
+    ] },
+  // Yvre-l'Eveque: a roundabout with the main road flying straight over it
+  { key:'yvre', name:'Overpass', target:30, base:5.0,
+    split:[['R','s'],['R','ne']],
+    nodes:[ { id:'R', type:'round', x:300, y:500, arms:[{key:'se',ang:40},{key:'s',ang:100},{key:'nw',ang:225},{key:'ne',ang:290}] } ],
+    roads:[
+      { a:['R','ne'], edge:[440,-40,0.3,-1] },
+      { a:['R','nw'], edge:[-40,200,-1,-0.4] },
+      { a:['R','se'], edge:[640,780,1,0.4] },
+      { a:['R','s'],  edge:[250,940,-0.1,1] },
+      { edges:[[-40,580,-1,0.24],[640,420,1,-0.24]], level:1, median:true, fast:true }
+    ] },
+  // Medway (M2): a dumbbell, two roundabouts joined under the motorway
+  { key:'medway', name:'Dumbbell', target:30, base:5.0,
+    split:[['R1','sw'],['R2','ne']],
+    nodes:[
+      { id:'R1', type:'round', x:175, y:560, arms:[{key:'e',ang:0},{key:'nw',ang:-125},{key:'sw',ang:125}] },
+      { id:'R2', type:'round', x:465, y:560, arms:[{key:'w',ang:180},{key:'ne',ang:-55},{key:'se',ang:55}] }
+    ],
+    roads:[
+      { a:['R1','e'], b:['R2','w'] },
+      { a:['R1','nw'], edge:[-40,280,-1,-0.4] },
+      { a:['R1','sw'], edge:[40,940,-0.4,1] },
+      { a:['R2','ne'], edge:[560,-40,0.4,-1] },
+      { a:['R2','se'], edge:[640,860,1,0.5] },
+      { edges:[[320,-40,0,-1],[320,940,0,1]], level:1, median:true, fast:true }
+    ] },
+  // Tatsuno-nishi IC: an expressway on a bridge, two junctions below with looping slip roads
+  { key:'tatsuno', name:'Expressway', target:32, base:5.4,
+    split:[['J2','N']], bans:[['J1','S','L']],
+    nodes:[
+      { id:'J1', type:'junction', x:240, y:330, rot:-0.2, arms:['N','E','S','W'] },
+      { id:'J2', type:'junction', x:330, y:690, rot:-0.1, arms:['N','E','S','W'] }
+    ],
+    roads:[
+      { a:['J1','S'], b:['J2','N'] },
+      { a:['J1','N'], edge:[260,-40,0.1,-1] },
+      { a:['J1','E'], edge:[640,240,1,-0.45], k:0.6 },
+      { a:['J1','W'], edge:[-40,380,-1,0.3] },
+      { a:['J2','E'], edge:[640,760,1,0.2] },
+      { a:['J2','W'], edge:[-40,600,-1,-0.5], k:0.55 },
+      { a:['J2','S'], edge:[360,940,0.1,1] },
+      { edges:[[-40,470,-1,0.05],[640,540,1,0.05]], level:1, median:true, fast:true }
     ] }
 ];
 const DENSITY = [
@@ -475,7 +582,29 @@ function buildNetwork(def, withScenery = true){
   }
   for (const n of net.nodes) for (const a of n.arms) a.opposite = n.type === 'junction' ? (n.arms.find(o => o !== a && (o.d.x*a.d.x + o.d.y*a.d.y) < -0.8) || null) : null;
   // roads
+  const extend = (center, atStart, atEnd) => {
+    const out = center.slice();
+    if (atStart){ const h = headingAt(center, false); out.unshift(add(center[0], h, -BGM - 60)); }
+    if (atEnd){ const h = headingAt(center, true); out.push(add(center[center.length-1], h, BGM + 60)); }
+    return out;
+  };
   for (const rd of def.roads){
+    if (rd.edges){
+      // a road that runs from map edge to map edge (motorways, usually on a bridge)
+      const [[x0, y0, ox0, oy0], [x1, y1, ox1, oy1]] = rd.edges;
+      const o0 = norm({ x: ox0, y: oy0 }), o1 = norm({ x: ox1, y: oy1 });
+      const P0 = { x: x0, y: y0 }, P3 = { x: x1, y: y1 }, k = dist(P0, P3) * (rd.k || 0.35);
+      const center = cubicPts(P0, add(P0, o0, -k), add(P3, o1, -k), P3, 6);
+      const nrm = normalsOf(center), level = rd.level || 0;
+      const fwd = mkLane(offsetPts(center, nrm, LN), 'road', { level, fast: !!rd.fast });
+      const back = mkLane(offsetPts(center, nrm, -LN).reverse(), 'road', { level, fast: !!rd.fast });
+      fwd.entry = back.entry = true; fwd.exit = back.exit = true;
+      net.entries.push(fwd, back);
+      const road = { center, nrm, cum: cumOf(center), ext: extend(center, true, true), median: !!rd.median, oneway: null, aNode: null, bNode: null, level };
+      net.roads.push(road);
+      for (let i = 1; i < center.length; i++) net.segs.push({ a: center[i-1], b: center[i] });
+      continue;
+    }
     const A = byId[rd.a[0]].armMap[rd.a[1]];
     const P0 = add(A.node, A.d, A.mouth);
     let P1, P2, P3, B = null;
@@ -490,7 +619,7 @@ function buildNetwork(def, withScenery = true){
     } else {
       const [ex, ey, ox, oy] = rd.edge, o = norm({ x: ox, y: oy });
       P3 = { x: ex, y: ey };
-      const k = dist(P0, P3) * 0.4;
+      const k = dist(P0, P3) * (rd.k || 0.4);
       P1 = add(P0, A.d, k); P2 = add(P3, o, -k);
     }
     const center = cubicPts(P0, P1, P2, P3, 6);
@@ -509,7 +638,7 @@ function buildNetwork(def, withScenery = true){
       if (B){ B.inLane = fwd; B.outLane = back; }
       else { back.entry = true; net.entries.push(back); fwd.exit = true; }
     }
-    const road = { center, nrm, cum: cumOf(center), median: !!rd.median, oneway: rd.oneway || null, aNode: A.node, bNode: B ? B.node : null };
+    const road = { center, nrm, cum: cumOf(center), ext: extend(center, false, !B), median: !!rd.median, oneway: rd.oneway || null, aNode: A.node, bNode: B ? B.node : null, level: 0 };
     net.roads.push(road);
     for (let i = 1; i < center.length; i++) net.segs.push({ a: center[i-1], b: center[i] });
   }
@@ -736,9 +865,9 @@ function pathOf(g, pts){ g.beginPath(); g.moveTo(pts[0].x, pts[0].y); for (let i
 const bgCache = {};
 function renderBackground(net, mode, snowy){
   const P = PAL[mode + (snowy ? 'Snow' : '')], k = 2, sc = net.scenery;
-  const c = document.createElement('canvas'); c.width = W*k; c.height = H*k;
-  const g = c.getContext('2d'); g.scale(k, k);
-  g.fillStyle = P.ground; g.fillRect(0, 0, W, H);
+  const c = document.createElement('canvas'); c.width = (W + 2*BGM)*k; c.height = (H + 2*BGM)*k;
+  const g = c.getContext('2d'); g.scale(k, k); g.translate(BGM, BGM);
+  g.fillStyle = P.ground; g.fillRect(-BGM, -BGM, W + 2*BGM, H + 2*BGM);
   for (const s of sc.specks){ g.fillStyle = s.l ? (snowy ? 'rgba(255,255,255,.18)' : 'rgba(255,255,255,.035)') : 'rgba(0,0,0,.06)'; g.fillRect(s.x, s.y, s.s, s.s); }
   // river with banks
   if (net.water){
@@ -811,7 +940,7 @@ function renderBackground(net, mode, snowy){
   };
   const surface = (extra, color) => {
     g.strokeStyle = color; g.fillStyle = color; g.lineCap = 'butt'; g.lineJoin = 'round'; g.lineWidth = (BW + extra)*2;
-    for (const rd of net.roads){ pathOf(g, rd.center); g.stroke(); }
+    for (const rd of net.roads){ if (!rd.level){ pathOf(g, rd.ext); g.stroke(); } }
     for (const n of net.nodes){
       if (n.type === 'junction') junctionHull(n, BW + extra, BW + extra);
       else {
@@ -823,7 +952,7 @@ function renderBackground(net, mode, snowy){
   surface(15, P.walk);
   // sidewalk joints
   g.strokeStyle = P.walkLine; g.lineWidth = 0.7;
-  for (const rd of net.roads) for (let i = 0; i < rd.center.length; i += 2) for (const side of [1, -1]){
+  for (const rd of net.roads) if (!rd.level) for (let i = 0; i < rd.center.length; i += 2) for (const side of [1, -1]){
     const p = add(rd.center[i], rd.nrm[i], side*BW), q = add(rd.center[i], rd.nrm[i], side*(BW+15));
     g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(q.x, q.y); g.stroke();
   }
@@ -844,6 +973,7 @@ function renderBackground(net, mode, snowy){
   }
   // asphalt texture + tyre tracks
   for (const rd of net.roads){
+    if (rd.level) continue;
     g.strokeStyle = P.track; g.lineWidth = 4;
     for (const off of [LN-5, LN+5, -LN-5, -LN+5]){ pathOf(g, offsetPts(rd.center, rd.nrm, off)); g.stroke(); }
   }
@@ -852,8 +982,40 @@ function renderBackground(net, mode, snowy){
 
   // ---- markings ----
   for (const rd of net.roads){
+    if (rd.level) continue;
+    drawRoadMarkings(g, net, rd, P, mode, snowy);
+  }
+  drawNodeMarkings(g, net, P, mode, snowy);
+  if (snowy) drawIce(g, net, mode);
+  for (const L of sc.lamps){ g.fillStyle = 'rgba(0,0,0,.4)'; g.beginPath(); g.arc(L.x+1, L.y+1.5, 2.6, 0, 7); g.fill(); g.fillStyle = mode === 'night' ? '#55666c' : '#6d7478'; g.beginPath(); g.arc(L.x, L.y, 2.2, 0, 7); g.fill(); }
+  return c;
+}
+// bridges: overpass decks drawn on their own layer so ground traffic passes underneath
+function renderBridges(net, mode, snowy){
+  const roads = net.roads.filter(r => r.level);
+  if (!roads.length) return null;
+  const P = PAL[mode + (snowy ? 'Snow' : '')], k = 2;
+  const c = document.createElement('canvas'); c.width = (W + 2*BGM)*k; c.height = (H + 2*BGM)*k;
+  const g = c.getContext('2d'); g.scale(k, k); g.translate(BGM, BGM);
+  g.lineCap = 'butt'; g.lineJoin = 'round';
+  for (const rd of roads){
+    g.save(); g.translate(9, 13); g.strokeStyle = 'rgba(0,0,0,.38)'; g.lineWidth = BW*2 + 34; pathOf(g, rd.ext); g.stroke(); g.restore();
+  }
+  for (const rd of roads){
+    g.strokeStyle = mode === 'night' ? '#4c5d64' : '#c9ccc6'; g.lineWidth = BW*2 + 16; pathOf(g, rd.ext); g.stroke();
+    g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = BW*2 + 5; pathOf(g, rd.ext); g.stroke();
+    g.strokeStyle = P.road; g.lineWidth = BW*2; pathOf(g, rd.ext); g.stroke();
+    g.strokeStyle = P.track; g.lineWidth = 4;
+    for (const off of [LN-5, LN+5, -LN-5, -LN+5]){ pathOf(g, offsetPts(rd.center, rd.nrm, off)); g.stroke(); }
+    drawRoadMarkings(g, net, rd, P, mode, snowy);
+  }
+  if (snowy) drawIce(g, { ice: net.ice.filter(p => roads.some(rd => rd.center.some(q => dist(q, p) < 30))) }, mode);
+  return c;
+}
+function drawRoadMarkings(g, net, rd, P, mode, snowy){
+  {
     const L = rd.cum[rd.cum.length-1];
-    const s0 = 26, s1 = rd.bNode ? L - 26 : L;
+    const s0 = rd.aNode ? 26 : 0, s1 = rd.bNode ? L - 26 : L;
     const seg = (off) => offsetPts(subPts(rd.center, rd.cum, s0, s1), normalsOf(subPts(rd.center, rd.cum, s0, s1)), off);
     if (rd.oneway){
       // parked cars along both kerbs and flow arrows down the middle
@@ -889,10 +1051,10 @@ function renderBackground(net, mode, snowy){
       pathOf(g, seg(2)); g.stroke(); pathOf(g, seg(-2)); g.stroke();
     }
     g.strokeStyle = P.line; g.lineWidth = 1.2;
-    const e0 = subPts(rd.center, rd.cum, 4, rd.bNode ? L - 4 : L), en = normalsOf(e0);
+    const e0 = subPts(rd.center, rd.cum, rd.aNode ? 4 : 0, rd.bNode ? L - 4 : L), en = normalsOf(e0);
     pathOf(g, offsetPts(e0, en, BW-3)); g.stroke(); pathOf(g, offsetPts(e0, en, -BW+3)); g.stroke();
     // bridge railings where the road crosses the river
-    if (net.water){
+    if (net.water && !rd.level){
       let run = [];
       const flush = () => {
         if (run.length > 1){
@@ -913,6 +1075,8 @@ function renderBackground(net, mode, snowy){
       if (!rd.oneway && !rd.median){ g.lineWidth = 6; pathOf(g, offsetPts(e0, en, 0)); g.stroke(); }
     }
   }
+}
+function drawNodeMarkings(g, net, P, mode, snowy){
   const line = (p, q) => { g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(q.x, q.y); g.stroke(); };
   for (const n of net.nodes){
     if (n.type === 'round'){
@@ -949,14 +1113,14 @@ function renderBackground(net, mode, snowy){
       if (arm.bans) [...arm.bans].forEach((t, k) => signBan(g, at(m + 48 + k*18, BW + 10), t, { x: -arm.d.x, y: -arm.d.y }));
     }
   }
-  if (snowy) for (const p of net.ice){
+}
+function drawIce(g, net, mode){
+  for (const p of net.ice){
     const gr = g.createRadialGradient(p.x - p.r*.25, p.y - p.r*.25, 2, p.x, p.y, p.r);
     gr.addColorStop(0, mode === 'night' ? 'rgba(190,225,245,.42)' : 'rgba(235,250,255,.85)'); gr.addColorStop(0.7, mode === 'night' ? 'rgba(150,200,230,.22)' : 'rgba(190,225,240,.5)'); gr.addColorStop(1, 'rgba(150,200,230,0)');
     g.fillStyle = gr; g.beginPath(); g.ellipse(p.x, p.y, p.r, p.r*0.75, (p.x*7) % 3, 0, 7); g.fill();
     g.strokeStyle = 'rgba(255,255,255,.25)'; g.lineWidth = 1; for (let k = 0; k < 3; k++){ g.beginPath(); g.moveTo(p.x - p.r*.4 + k*8, p.y - 6 + k*5); g.lineTo(p.x - p.r*.1 + k*8, p.y - 10 + k*5); g.stroke(); }
   }
-  for (const L of sc.lamps){ g.fillStyle = 'rgba(0,0,0,.4)'; g.beginPath(); g.arc(L.x+1, L.y+1.5, 2.6, 0, 7); g.fill(); g.fillStyle = mode === 'night' ? '#55666c' : '#6d7478'; g.beginPath(); g.arc(L.x, L.y, 2.2, 0, 7); g.fill(); }
-  return c;
 }
 function arrowGlyph(g, p, h, turns, col){
   const r = { x: -h.y, y: h.x };
@@ -1049,7 +1213,7 @@ const LEVELS_TO_UNLOCK = 5;
 let progress = {};
 try { progress = JSON.parse(localStorage.getItem('jc-progress') || '{}') || {}; } catch(e){ progress = {}; }
 const cleared = i => progress[MAPS[i].key] || 0;
-const unlocked = i => i === 0 || cleared(i - 1) >= LEVELS_TO_UNLOCK;
+const unlocked = () => true;     // every map is open; progress per map is still tracked
 function saveProgress(){ try { localStorage.setItem('jc-progress', JSON.stringify(progress)); } catch(e){} }
 try { const s = JSON.parse(localStorage.getItem('jc-prefs') || '{}'); if (s.map >= 0 && s.map < MAPS.length) mapIndex = s.map; if (s.dens >= 0 && s.dens < DENSITY.length) densIndex = s.dens; if (s.gm === 'endless') gameMode = 'endless'; } catch(e){}
 function ensureUnlocked(){ if (!unlocked(mapIndex)) mapIndex = 0; }
@@ -1165,7 +1329,7 @@ function buildRoute(entry){
 }
 function spawnCar(ei){
   const type = pickType(), T = TYPES[type];
-  const vmax = T.v[0] + Math.random()*(T.v[1]-T.v[0]);
+  const vmax = (T.v[0] + Math.random()*(T.v[1]-T.v[0])) * (NET.entries[ei].fast ? 1.3 : 1);
   const c = { id: G.nextId++, entry: ei, path: buildRoute(NET.entries[ei]), seg: 0, fi: 0, ri: 0, s: 0, v: vmax*0.75, vmax, acc: T.acc, len: T.len, wid: T.wid, type,
     color: type === 'bus' ? '#e2ad2a' : type === 'taxi' ? '#f2c230' : type === 'truck' ? '#c9d0d6' : COLORS[(Math.random()*COLORS.length)|0],
     wait: 0, totalWait: 0, crashed: 0, wreckMax: 0, done: {}, a: 0, slip: 0, slipV: 0, yaw: 0, yawV: 0, honkT: 0, ambHit: false, react: 0, reactT: 0.25 + Math.random()*0.55 };
@@ -1191,6 +1355,7 @@ function refreshLanes(c){
   while (c.ri < it.length-1 && c.s > it[c.ri].s1) c.ri++;
   c.fl = it[c.fi].lane; c.flNext = it[c.fi+1] ? it[c.fi+1].lane : null; c.frontLeft = it[c.fi].s1 - front;
   c.cl = it[c.ri].lane;
+  c.level = c.cl.level || 0;
 }
 function canSpawn(ei){ for (const o of G.cars) if (o.entry === ei && o.s - o.len/2 < 56) return false; return true; }
 
@@ -1255,9 +1420,15 @@ function oncomingBusy(c, conn){
   const oppLight = G.lights[opp.lightFor('S')];
   for (const X of G.cars){
     if (X === c || X.crashed) continue;
-    if (X.fl === opp.inLane && X.flNext && X.flNext.turn !== 'L'){
-      const d = X.frontLeft;
+    // oncoming cars on the approach, or still crossing the previous junction and about to arrive
+    const it = X.path.items;
+    for (let k = X.fi; k <= X.fi + 2 && k < it.length; k++){
+      if (it[k].lane !== opp.inLane) continue;
+      const nx = it[k+1] && it[k+1].lane;
+      if (!nx || nx.turn === 'L') break;
+      const d = it[k].s1 - (X.s + X.len/2);
       if (d < 2 || (X.v > 15 && d < Math.max(80, X.v*(2.4 + c.len/28))) || (oppLight.state === 'green' && d < 60)) return true;
+      break;
     }
     if ((X.fl.kind === 'conn' && X.fl.armIn === opp && X.fl.turn !== 'L') || (X.cl.kind === 'conn' && X.cl.armIn === opp && X.cl.turn !== 'L')) return true;
   }
@@ -1350,14 +1521,15 @@ function step(dt){
     }
     // vehicles ahead
     for (const o of cars){
-      if (o === c) continue;
+      if (o === c || o.level !== c.level) continue;
       const dx = o.x - c.x, dy = o.y - c.y;
       if (dx > 170 || dx < -170 || dy > 170 || dy < -170) continue;
       const fwd = dx*c.hx + dy*c.hy;
       if (fwd <= -30 || fwd > 160) continue;
       const dot = c.hx*o.hx + c.hy*o.hy;
       // a slow or stopped car whose body sticks into our path inside a junction: brake for it
-      if (!o.crashed && dot < 0.9 && o.v < 30 && (c.fl.kind === 'conn' || c.flNext && c.flNext.kind === 'conn' && c.frontLeft < 30)){
+      const onRing = c.fl.kind === 'ring' || c.fl.kind === 'rconn' || (c.flNext && c.flNext.kind === 'rconn' && c.frontLeft < 30);
+      if (!o.crashed && dot < 0.9 && ((o.v < 30 && (c.fl.kind === 'conn' || c.flNext && c.flNext.kind === 'conn' && c.frontLeft < 30)) || onRing)){
         for (const [qx, qy] of circles(o)){
           const f2 = (qx - c.x)*c.hx + (qy - c.y)*c.hy, l2 = Math.abs((qx - c.x)*c.hy - (qy - c.y)*c.hx);
           if (f2 > 0 && f2 < 85 && l2 < (c.wid + o.wid)/2 + 2) lead(f2 - c.len/2 - o.wid/2 - 4, 0);
@@ -1388,7 +1560,7 @@ function step(dt){
         }
       }
     }
-    for (const pd of G.peds){
+    if (!c.level) for (const pd of G.peds){
       if (pd.state !== 'cross') continue;
       const dx = pd.x - c.x, dy = pd.y - c.y;
       const fwd = dx*c.hx + dy*c.hy; if (fwd <= 0 || fwd > 95) continue;
@@ -1459,6 +1631,7 @@ function step(dt){
       const dx = A.x - B.x, dy = A.y - B.y, lim = (A.len + B.len)/2 + 2;
       if (dx > lim || dx < -lim || dy > lim || dy < -lim) continue;
       if (A.crashed && B.crashed) continue;
+      if (A.level !== B.level) continue;
       if (!A.crashed && !B.crashed && (A.hx*B.hx + A.hy*B.hy) > 0.8 && !(snow && Math.abs(A.v - B.v) > 22 && (A.sliding || B.sliding || A.a <= -grip0 || B.a <= -grip0))) continue;
       if (A.cl.kind === 'conn' && B.cl.kind === 'conn' && A.cl.turn === 'L' && B.cl.turn === 'L' && A.cl.armIn.opposite === B.cl.armIn) continue;
       if (overlap(A, B)) crash(A, B);
@@ -1484,7 +1657,7 @@ function step(dt){
   for (let i = G.skids.length-1; i >= 0; i--){ G.skids[i].life -= dt; if (G.skids[i].life <= 0) G.skids.splice(i,1); }
   for (const c of cars) if (c.crashed && Math.random() < dt*3) G.parts.push({ x: c.x, y: c.y, vx: (Math.random()-.5)*12, vy: -8 - Math.random()*10, life: 1.4, max: 1.4, color: 'smoke', size: 6 + Math.random()*6 });
   if (rain){
-    for (const d of G.drops){ d.x -= 70*d.z*dt; d.y += 620*d.z*dt; if (d.y > H){ d.y = -10; d.x = Math.random()*(W+80); if (Math.random() < .5) G.splashes.push({ x: Math.random()*W, y: Math.random()*H, life: .35 }); } if (d.x < -20) d.x += W+40; }
+    for (const d of G.drops){ d.x -= 70*d.z*dt; d.y += 620*d.z*dt; if (d.y > H + 120){ d.y = -130; d.x = -120 + Math.random()*(W+260); if (Math.random() < .5) G.splashes.push({ x: Math.random()*W, y: Math.random()*H, life: .35 }); } if (d.x < -20) d.x += W+40; }
     for (let i = G.splashes.length-1; i >= 0; i--){ G.splashes[i].life -= dt; if (G.splashes[i].life <= 0) G.splashes.splice(i,1); }
   } else if (snow){
     for (const d of G.drops){ d.y += (28 + 34*d.z)*dt; d.x += Math.sin(G.t*1.3 + d.z*20) * 14 * dt - 8*dt; if (d.y > H + 5){ d.y = -5; d.x = Math.random()*W; } if (d.x < -10) d.x += W + 20; }
@@ -1524,12 +1697,15 @@ const LCOL = { red:'#ff4545', amber:'#ffb52e', green:'#4dff94' };
 function draw(){
   const key = NET.def.key + (night ? 'n' : 'd') + (snow ? 's' : '');
   if (!bgCache[key]) bgCache[key] = renderBackground(NET, night ? 'night' : 'day', snow);
-  const sc = NET.scenery;
+  const sc = NET.scenery, V = VIEW, VR = visibleRect();
+  ctx.setTransform(V.dpr, 0, 0, V.dpr, 0, 0);
+  ctx.fillStyle = PAL[(night ? 'night' : 'day') + (snow ? 'Snow' : '')].ground; ctx.fillRect(0, 0, V.cw, V.ch);
+  ctx.setTransform(V.s*V.dpr, 0, 0, V.s*V.dpr, V.ox*V.dpr, V.oy*V.dpr);
   ctx.save();
   if (G.shake > 0) ctx.translate((Math.random()-.5)*G.shake, (Math.random()-.5)*G.shake);
-  ctx.drawImage(bgCache[key], 0, 0, W, H);
+  ctx.drawImage(bgCache[key], -BGM, -BGM, W + 2*BGM, H + 2*BGM);
   const t = performance.now()/1000;
-  if (rain){ ctx.fillStyle = night ? 'rgba(90,130,160,.05)' : 'rgba(40,60,80,.08)'; ctx.fillRect(0, 0, W, H); }
+  if (rain){ ctx.fillStyle = night ? 'rgba(90,130,160,.05)' : 'rgba(40,60,80,.08)'; ctx.fillRect(VR.x0, VR.y0, VR.x1 - VR.x0, VR.y1 - VR.y0); }
 
   for (const s of G.skids){
     const a = Math.min(1, s.life/4);
@@ -1572,7 +1748,11 @@ function draw(){
     }
   }
   for (const p of G.peds) drawPed(p);
-  for (const c of G.cars) drawCar(c, t);
+  for (const c of G.cars) if (!c.level) drawCar(c, t);
+  const bkey = key + 'b';
+  if (bgCache[bkey] === undefined) bgCache[bkey] = renderBridges(NET, night ? 'night' : 'day', snow);
+  if (bgCache[bkey]) ctx.drawImage(bgCache[bkey], -BGM, -BGM, W + 2*BGM, H + 2*BGM);
+  for (const c of G.cars) if (c.level) drawCar(c, t);
 
   if (night){
     ctx.globalCompositeOperation = 'lighter';
@@ -1611,7 +1791,7 @@ function draw(){
   if (mode === 'play') NET.entries.forEach((lane, e) => {
     const n = G.pending[e]; if (n <= 0) return;
     let k = 0, p = lane.pts[0];
-    while (k < lane.pts.length-1 && (p.x < 26 || p.x > W-26 || p.y < 200 || p.y > H-26)){ k++; p = lane.pts[k]; }
+    while (k < lane.pts.length-1 && (p.x < VR.x0 + 22 || p.x > VR.x1 - 22 || p.y < VR.top || p.y > VR.y1 - 22)){ k++; p = lane.pts[k]; }
     const hot = n >= 3;
     ctx.fillStyle = hot ? (Math.floor(t*4)%2 ? '#ff4141' : '#b42121') : '#ffbf47';
     ctx.beginPath(); ctx.arc(p.x, p.y, 15, 0, 7); ctx.fill();
@@ -1627,7 +1807,7 @@ function draw(){
   if (snow){
     ctx.fillStyle = night ? 'rgba(235,245,255,.75)' : 'rgba(255,255,255,.95)';
     for (const d of G.drops){ ctx.beginPath(); ctx.arc(d.x, d.y, 0.8 + d.z*1.3, 0, 7); ctx.fill(); }
-    if (!night){ ctx.fillStyle = 'rgba(220,232,240,.10)'; ctx.fillRect(0, 0, W, H); }
+    if (!night){ ctx.fillStyle = 'rgba(220,232,240,.10)'; ctx.fillRect(VR.x0, VR.y0, VR.x1 - VR.x0, VR.y1 - VR.y0); }
   }
   if (rain){
     ctx.strokeStyle = night ? 'rgba(200,220,240,.28)' : 'rgba(230,240,250,.45)'; ctx.lineWidth = 1;
@@ -1641,9 +1821,10 @@ function draw(){
     ctx.globalAlpha = Math.min(1, f.life); ctx.fillStyle = f.color; ctx.font = '700 16px "Chakra Petch", sans-serif'; ctx.textAlign = 'center';
     ctx.fillText(f.text, f.x, f.y); ctx.globalAlpha = 1;
   }
-  const vg = ctx.createRadialGradient(W/2, H/2, H*0.35, W/2, H/2, H*0.75);
-  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, night ? 'rgba(0,8,14,.55)' : 'rgba(0,0,0,.18)');
-  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  const vcx = (VR.x0 + VR.x1)/2, vcy = (VR.y0 + VR.y1)/2, vrad = Math.hypot(VR.x1 - VR.x0, VR.y1 - VR.y0)/2;
+  const vg = ctx.createRadialGradient(vcx, vcy, vrad*0.45, vcx, vcy, vrad*1.05);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, night ? 'rgba(0,8,14,.5)' : 'rgba(0,0,0,.15)');
+  ctx.fillStyle = vg; ctx.fillRect(VR.x0, VR.y0, VR.x1 - VR.x0, VR.y1 - VR.y0);
   ctx.restore();
 }
 function glow(x, y, r, col){ const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); }
@@ -1832,7 +2013,7 @@ function hitTest(x, y){
 cv.addEventListener('pointerdown', e => {
   audio(); updateRainSound();
   const r = cv.getBoundingClientRect();
-  const x = (e.clientX - r.left) * W / r.width, y = (e.clientY - r.top) * H / r.height;
+  const x = (e.clientX - r.left - VIEW.ox) / VIEW.s, y = (e.clientY - r.top - VIEW.oy) / VIEW.s;
   const i = hitTest(x, y); if (i >= 0) toggleLight(i);
 });
 window.addEventListener('keydown', e => {
@@ -1899,7 +2080,8 @@ function drawThumb(cvs, net){
   g.fillStyle = '#123039'; g.fillRect(0, 0, W, H);
   if (net.water){ g.strokeStyle = '#2f6f8f'; g.lineWidth = net.water.half*2; g.lineCap = 'round'; pathOf(g, net.water.pts); g.stroke(); }
   g.strokeStyle = '#6f8b93'; g.fillStyle = '#6f8b93'; g.lineWidth = BW*2; g.lineCap = 'butt'; g.lineJoin = 'round';
-  for (const rd of net.roads){ g.lineWidth = rd.oneway ? BW*1.3 : BW*2; pathOf(g, rd.center); g.stroke(); }
+  for (const rd of net.roads){ if (rd.level) continue; g.lineWidth = rd.oneway ? BW*1.3 : BW*2; pathOf(g, rd.center); g.stroke(); }
+  for (const rd of net.roads){ if (!rd.level) continue; g.strokeStyle = '#0b161b'; g.lineWidth = BW*2 + 24; pathOf(g, rd.center); g.stroke(); g.strokeStyle = '#a9c0c6'; g.lineWidth = BW*2; pathOf(g, rd.center); g.stroke(); g.strokeStyle = '#6f8b93'; }
   for (const n of net.nodes){
     if (n.type === 'junction'){ g.beginPath(); g.arc(n.x, n.y, BW*1.2, 0, 7); g.fill(); }
     else { g.beginPath(); g.arc(n.x, n.y, RR + 20, 0, 7); g.fill(); g.fillStyle = '#1f5a45'; g.beginPath(); g.arc(n.x, n.y, RR - 20, 0, 7); g.fill(); g.fillStyle = '#6f8b93'; }
@@ -1966,12 +2148,12 @@ function endGame(win, title, text){
     progress[key] = Math.max(before, G.level); saveProgress(); refreshMapChips();
     const nextI = mapIndex + 1, justUnlocked = nextI < MAPS.length && before < LEVELS_TO_UNLOCK && progress[key] >= LEVELS_TO_UNLOCK;
     $('endEyebrow').textContent = 'Level ' + G.level + (G.level <= LEVELS_TO_UNLOCK ? ' of ' + LEVELS_TO_UNLOCK : '') + ' cleared · ' + NET.def.name;
-    $('endTitle').textContent = justUnlocked ? 'New map unlocked' : 'Traffic flowing';
-    $('endText').textContent = justUnlocked ? MAPS[nextI].name + ' is now open. You can move on, or keep playing harder levels here.'
-      : G.level < LEVELS_TO_UNLOCK ? (LEVELS_TO_UNLOCK - G.level) + ' more level' + (LEVELS_TO_UNLOCK - G.level > 1 ? 's' : '') + ' to unlock ' + (MAPS[nextI] ? MAPS[nextI].name : 'the bonus levels') + '. Next: more cars and shorter gaps.'
+    $('endTitle').textContent = justUnlocked ? 'Map complete' : 'Traffic flowing';
+    $('endText').textContent = justUnlocked ? 'You finished ' + NET.def.name + '. Try the next map, or keep playing harder levels here.'
+      : G.level < LEVELS_TO_UNLOCK ? (LEVELS_TO_UNLOCK - G.level) + ' more level' + (LEVELS_TO_UNLOCK - G.level > 1 ? 's' : '') + ' to complete ' + NET.def.name + '. Next: more cars and shorter gaps.'
       : 'Next level: more cars, shorter gaps, and ambulances show up more often.';
     $('bNext').hidden = false;
-    if (nextI < MAPS.length && unlocked(nextI) && G.level >= LEVELS_TO_UNLOCK) $('bNextMap').hidden = false;
+    if (nextI < MAPS.length && G.level >= LEVELS_TO_UNLOCK) $('bNextMap').hidden = false;
     $('bNext').classList.toggle('ghost', !$('bNextMap').hidden);
   } else if (gameMode === 'endless'){
     sfx.lose();
@@ -2010,13 +2192,23 @@ $('bDay').onclick = () => { night = !night; $('bDay').innerHTML = night
   : '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'; };
 $('bSound').onclick = () => { soundOn = !soundOn; $('sndWave').style.display = soundOn ? '' : 'none'; $('bSound').classList.toggle('on', !soundOn); audio(); updateRainSound(); };
 
+// The map fills the whole screen: scale to cover, but never crop more than ~30% of the width or 8% of the height.
+const VIEW = { s: 1, ox: 0, oy: 0, dpr: 1, cw: W, ch: H };
 function resize(){
-  const aw = app.clientWidth, ah = app.clientHeight;
-  const s = Math.min(aw / W, ah / H);
-  stage.style.width = Math.floor(W*s) + 'px'; stage.style.height = Math.floor(H*s) + 'px';
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  cv.width = Math.floor(W*s*dpr); cv.height = Math.floor(H*s*dpr);
-  ctx.setTransform(s*dpr, 0, 0, s*dpr, 0, 0);
+  const cw = stage.clientWidth || window.innerWidth, ch = stage.clientHeight || window.innerHeight;
+  let s = Math.max(cw / W, ch / H);
+  s = Math.min(s, cw / (W*0.70), ch / (H*0.92));
+  s = Math.max(s, Math.min(cw / W, ch / H));
+  VIEW.s = s; VIEW.cw = cw; VIEW.ch = ch; VIEW.ox = (cw - W*s)/2; VIEW.oy = (ch - H*s)/2;
+  VIEW.dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.floor(cw*VIEW.dpr); cv.height = Math.floor(ch*VIEW.dpr);
+  cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+  const hud = document.querySelector('.hud');
+  VIEW.hudBottom = hud ? hud.getBoundingClientRect().bottom - stage.getBoundingClientRect().top : 120;
+}
+function visibleRect(){
+  const V = VIEW;
+  return { x0: -V.ox / V.s, y0: -V.oy / V.s, x1: (V.cw - V.ox) / V.s, y1: (V.ch - V.oy) / V.s, top: (V.hudBottom + 14 - V.oy) / V.s };
 }
 window.addEventListener('resize', resize);
 

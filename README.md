@@ -2,7 +2,7 @@
 
 A top-down traffic-light game for Android. Tap traffic lights to switch them between red and green and keep the town moving.
 
-- 12 maps with curved roads, roundabouts, one-way streets, turn bans and random arrow lights; each map unlocks after clearing 5 levels on the previous one
+- 19 maps with curved roads, roundabouts, one-way streets, turn bans and random arrow lights, including 7 traced from real places (Osaka, Joensuu, Shenzhen, Chita, Yvré-l'Évêque, Medway, Tatsuno) with motorway bridges
 - Levels and Endless modes, Light / Normal / Heavy / Rush hour traffic
 - Clear, rain and snow weather (rain slows cars, snow makes them slide on ice)
 - Pedestrians with walk signals on city maps, ambulances, buses, trucks, wrecks that block the road
